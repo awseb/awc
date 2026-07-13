@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: awc-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: awc_user
+      POSTGRES_PASSWORD: awc_password
+      POSTGRES_DB: awc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: awc-web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://awc_user:awc_password@db:5432/awc_db?schema=public
+      - NEXT_PUBLIC_MOCK_MODE=true
+      - ADULTWORK_API_KEY=mock-key-123456
+      - ADULTWORK_API_SECRET=mock-secret-abcdef
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
