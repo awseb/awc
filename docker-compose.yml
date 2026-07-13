@@ -20,7 +20,7 @@ services:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://awc_user:awc_password@db:5432/awc_db?schema=public
-      - NEXT_PUBLIC_MOCK_MODE=true
+      - NEXT_PUBLIC_MOCK_MODE=false
       - ADULTWORK_API_KEY=xey_6gll4w7D8-yRAIIOXtD3VT9ErlAePpPBJqOwxyg
       - ADULTWORK_API_SECRET=_BEM8qwzS4nvXXTpqc1goBZan88naJGx8Hje_ek80L0
     depends_on:
