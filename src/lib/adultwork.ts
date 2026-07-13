@@ -469,10 +469,22 @@ export async function adultWorkSearchProfiles(params: Record<string, any>, acces
   const isSandbox = true
   const baseUrl = isSandbox ? "https://api-sandbox.adultwork.com" : "https://api.adultwork.com"
 
-  const response = await fetch(`${baseUrl}/v1/search/searchProfiles`, {
+  // Format parameters to exactly match what the AdultWork API expectations are.
+  // Passing empty filter fields can sometimes trigger 500 errors on certain Sandboxes,
+  // so we default to IsEscort=true if no other roles are specified.
+  const isAnyRoleSpecified = params.IsEscort || params.IsWebcam || params.IsPhoneChat || params.IsSMSChat || params.IsAlternative || params.IsOtherServices
+  const bodyParams = {
+    IsEscort: isAnyRoleSpecified ? undefined : true,
+    ProfilesPerPage: 50,
+    PageNumber: 1,
+    ...params
+  }
+
+  // Use the exact PascalCase path: /v1/Search/SearchProfiles
+  const response = await fetch(`${baseUrl}/v1/Search/SearchProfiles`, {
     method: 'POST',
     headers: getHeaders(accessToken),
-    body: JSON.stringify(params)
+    body: JSON.stringify(bodyParams)
   })
 
   if (!response.ok) {
@@ -493,7 +505,8 @@ export async function adultWorkGetProfileDetails(userId: number, accessToken?: s
   const isSandbox = true
   const baseUrl = isSandbox ? "https://api-sandbox.adultwork.com" : "https://api.adultwork.com"
 
-  const response = await fetch(`${baseUrl}/v1/profile/GetProfileDetails?UserID=${userId}`, {
+  // Use exact PascalCase path: /v1/Profile/GetProfileDetails
+  const response = await fetch(`${baseUrl}/v1/Profile/GetProfileDetails?UserID=${userId}`, {
     method: 'GET',
     headers: getHeaders(accessToken)
   })
