@@ -63,6 +63,7 @@ model CachedProfile {
   squareUrl                   String?   // Excluded in discreet mode
   lastUpdated                 DateTime?
   lastSynced                  DateTime  @default(now())
+  active                      Boolean   @default(true)
 }
 
 model SyncConfig {

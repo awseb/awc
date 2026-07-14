@@ -23,5 +23,5 @@ RUN npm run build
 
 EXPOSE 3000
 
-# Automatically run prisma db push on container start to sync database schema before launching web app
-CMD ["sh", "-c", "npx prisma db push && npm start"]
+# Wait for the database server to be fully reachable, then execute prisma db push and start the Next.js server
+CMD ["sh", "-c", "node -e \"const net = require('net'); const client = new net.Socket(); const checkConn = () => { client.connect(5432, 'db', () => { console.log('Database is up and reachable!'); client.end(); process.exit(0); }); }; client.on('error', () => { console.log('Database is not ready yet, retrying in 2 seconds...'); setTimeout(checkConn, 2000); }); checkConn();\" && npx prisma db push && npm start"]

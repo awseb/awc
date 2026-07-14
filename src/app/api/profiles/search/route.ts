@@ -10,7 +10,10 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
 
-  const where: any = {}
+  const where: any = {
+    active: true,
+    isEscort: true
+  }
 
   const nickname = searchParams.get('nickname')
   if (nickname) {
@@ -135,6 +138,7 @@ export async function GET(request: Request) {
             thumbnailUrl: p.ProfileThumbnailURL,
             squareUrl: p.ProfileSquareURL,
             lastUpdated: p.LastUpdated ? new Date(p.LastUpdated) : null,
+            active: true
           }
         })
       }

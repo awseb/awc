@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Mail, Settings, LogOut, Shield, CheckCircle, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Search, Mail, Settings, LogOut, Shield, CheckCircle, ToggleLeft, ToggleRight, Heart } from 'lucide-react'
 
 interface SessionData {
   userId: number | null
@@ -62,6 +62,7 @@ export default function DashboardShell({ children, initialSession }: DashboardSh
   const navItems = [
     { name: 'Search Profiles', href: '/dashboard/profiles', icon: Search },
     { name: 'Direct Messaging', href: '/dashboard/messages', icon: Mail },
+    { name: 'Hotlists Directory', href: '/dashboard/hotlists', icon: Heart },
   ]
 
   if (session.role === 'ADMIN') {
