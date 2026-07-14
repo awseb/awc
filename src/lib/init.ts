@@ -108,12 +108,26 @@ async function executeBackgroundSync() {
     const searchParams = {
       ProfilesPerPage: 50,
       PageNumber: 1,
+      IsEscort: true,
+      CountryID: 158
     }
 
     const searchResponse = await adultWorkSearchProfiles(searchParams)
-    const profiles = searchResponse.Profiles || []
+    const rawProfiles = searchResponse.Profiles || []
+
+    // 1. Filter to ensure strictly UK country and Escort service only
+    const profiles = rawProfiles.filter((profile: any) => {
+      const isEscort = profile.IsEscort === true
+      const isUK = profile.CountryID === "158" ||
+                   profile.NationalityID === "158" ||
+                   String(profile.NationalityID) === "158" ||
+                   profile.NationalityISO2 === "UK" ||
+                   profile.Country?.toLowerCase() === "united kingdom"
+      return isEscort && isUK
+    })
 
     let profilesSyncedCount = 0
+    const syncedIds: number[] = []
 
     for (const profile of profiles) {
       await prisma.cachedProfile.upsert({
@@ -160,7 +174,8 @@ async function executeBackgroundSync() {
           thumbnailUrl: profile.ProfileThumbnailURL,
           squareUrl: profile.ProfileSquareURL,
           lastUpdated: profile.LastUpdated ? new Date(profile.LastUpdated) : null,
-          lastSynced: new Date()
+          lastSynced: new Date(),
+          active: true
         },
         create: {
           userId: profile.UserID,
@@ -205,11 +220,41 @@ async function executeBackgroundSync() {
           thumbnailUrl: profile.ProfileThumbnailURL,
           squareUrl: profile.ProfileSquareURL,
           lastUpdated: profile.LastUpdated ? new Date(profile.LastUpdated) : null,
-          lastSynced: new Date()
+          lastSynced: new Date(),
+          active: true
         }
       })
       profilesSyncedCount++
+      syncedIds.push(profile.UserID)
     }
+
+    // 2. Purge other cached profiles that are not escorts or not in the UK
+    await prisma.cachedProfile.deleteMany({
+      where: {
+        OR: [
+          { isEscort: false },
+          {
+            NOT: {
+              OR: [
+                { country: { equals: 'United Kingdom' } },
+                { nationalityISO2: { equals: 'UK' } }
+              ]
+            }
+          }
+        ]
+      }
+    })
+
+    // 3. Mark matched profiles that are no longer found as inactive
+    await prisma.cachedProfile.updateMany({
+      where: {
+        userId: { notIn: syncedIds },
+        active: true
+      },
+      data: {
+        active: false
+      }
+    })
 
     await prisma.syncConfig.update({
       where: { id: 1 },
