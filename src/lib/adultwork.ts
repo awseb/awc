@@ -614,3 +614,201 @@ export async function adultWorkSendEmail(toUserId: number, subject: string, body
   const data = await response.json()
   return { Success: true, EmailID: data?.EmailID }
 }
+
+export interface HotListDetails {
+  UserID: number
+  ListID: number
+  ListName: string
+  UserName: string
+}
+
+export interface HotListMember {
+  UserID: number
+  InteractionCount: number
+  UserName: string
+  Notes: string | null
+  LastUpdated: string
+  LastInteractionDate: string
+  Profile?: any
+}
+
+export interface HotList {
+  HotListDetails: HotListDetails
+  HotListMembers: HotListMember[]
+}
+
+// In-memory mock hotlists state
+let MOCK_HOTLISTS: HotList[] = [
+  {
+    HotListDetails: {
+      UserID: 999,
+      ListID: 111,
+      ListName: "AW Favorites",
+      UserName: "admin"
+    },
+    HotListMembers: [
+      {
+        UserID: 10101,
+        InteractionCount: 1,
+        UserName: "Alexandra_x",
+        Notes: "Outstanding companion",
+        LastUpdated: new Date().toISOString(),
+        LastInteractionDate: new Date().toISOString(),
+      },
+      {
+        UserID: 20202,
+        InteractionCount: 0,
+        UserName: "JessicaB",
+        Notes: null,
+        LastUpdated: new Date().toISOString(),
+        LastInteractionDate: "0001-01-01T00:00:00",
+      }
+    ]
+  },
+  {
+    HotListDetails: {
+      UserID: 999,
+      ListID: 112,
+      ListName: "Elite Escorts",
+      UserName: "admin"
+    },
+    HotListMembers: [
+      {
+        UserID: 40404,
+        InteractionCount: 3,
+        UserName: "ChloeLondon",
+        Notes: "Brilliant Mayfair escort",
+        LastUpdated: new Date().toISOString(),
+        LastInteractionDate: new Date().toISOString(),
+      }
+    ]
+  }
+]
+
+export async function adultWorkGetHotLists(accessToken?: string): Promise<HotList[]> {
+  if (isMockMode()) {
+    return MOCK_HOTLISTS
+  }
+
+  const isSandbox = true
+  const baseUrl = isSandbox ? "https://api-sandbox.adultwork.com" : "https://api.adultwork.com"
+
+  const response = await fetch(`${baseUrl}/v1/HotLists/GetHotLists?ReturnMemberProfiles=true`, {
+    method: 'GET',
+    headers: getHeaders(accessToken)
+  })
+
+  if (!response.ok) {
+    throw new Error(`AdultWork API Get Hotlists Error: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function adultWorkAddUserToHotList(userId: number, listId: number, accessToken?: string): Promise<{ Success: boolean }> {
+  if (isMockMode()) {
+    const list = MOCK_HOTLISTS.find(l => l.HotListDetails.ListID === listId)
+    if (list) {
+      const alreadyMember = list.HotListMembers.some(m => m.UserID === userId)
+      if (!alreadyMember) {
+        const profile = MOCK_PROFILES.find(p => p.UserID === userId)
+        list.HotListMembers.push({
+          UserID: userId,
+          InteractionCount: 0,
+          UserName: profile ? profile.NickName : `User_${userId}`,
+          Notes: null,
+          LastUpdated: new Date().toISOString(),
+          LastInteractionDate: "0001-01-01T00:00:00"
+        })
+      }
+    }
+    return { Success: true }
+  }
+
+  const isSandbox = true
+  const baseUrl = isSandbox ? "https://api-sandbox.adultwork.com" : "https://api.adultwork.com"
+
+  const response = await fetch(`${baseUrl}/v1/HotLists/AddUserToHotList`, {
+    method: 'POST',
+    headers: getHeaders(accessToken),
+    body: JSON.stringify({
+      UserID: userId,
+      ListID: listId
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`AdultWork API Add To Hotlist Error: ${response.status}`)
+  }
+
+  return { Success: true }
+}
+
+export async function adultWorkRemoveUserFromHotList(userId: number, listId: number, accessToken?: string): Promise<{ Success: boolean }> {
+  if (isMockMode()) {
+    const list = MOCK_HOTLISTS.find(l => l.HotListDetails.ListID === listId)
+    if (list) {
+      list.HotListMembers = list.HotListMembers.filter(m => m.UserID !== userId)
+    }
+    return { Success: true }
+  }
+
+  const isSandbox = true
+  const baseUrl = isSandbox ? "https://api-sandbox.adultwork.com" : "https://api.adultwork.com"
+
+  const response = await fetch(`${baseUrl}/v1/HotLists/RemoveUserFromHotList`, {
+    method: 'POST',
+    headers: getHeaders(accessToken),
+    body: JSON.stringify({
+      UserID: userId,
+      ListID: listId
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`AdultWork API Remove From Hotlist Error: ${response.status}`)
+  }
+
+  return { Success: true }
+}
+
+export async function adultWorkRemoveHotList(listId: number, accessToken?: string): Promise<{ Success: boolean }> {
+  if (isMockMode()) {
+    MOCK_HOTLISTS = MOCK_HOTLISTS.filter(l => l.HotListDetails.ListID !== listId)
+    return { Success: true }
+  }
+
+  const isSandbox = true
+  const baseUrl = isSandbox ? "https://api-sandbox.adultwork.com" : "https://api.adultwork.com"
+
+  const response = await fetch(`${baseUrl}/v1/HotLists/RemoveHotList`, {
+    method: 'POST',
+    headers: getHeaders(accessToken),
+    body: JSON.stringify({
+      ListID: listId
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`AdultWork API Remove Hotlist Error: ${response.status}`)
+  }
+
+  return { Success: true }
+}
+
+export async function adultWorkCreateHotList(listName: string, accessToken?: string): Promise<{ Success: boolean, ListID: number }> {
+  if (isMockMode()) {
+    const newListId = Math.floor(Math.random() * 1000) + 200
+    MOCK_HOTLISTS.push({
+      HotListDetails: {
+        UserID: 999,
+        ListID: newListId,
+        ListName: listName,
+        UserName: "admin"
+      },
+      HotListMembers: []
+    })
+    return { Success: true, ListID: newListId }
+  }
+  return { Success: false, ListID: 0 }
+}

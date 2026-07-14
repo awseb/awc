@@ -61,21 +61,55 @@ export default function ProfilesBrowser() {
   const [orderBy, setOrderBy] = useState('lastUpdated-desc')
 
   const [filterBooleans, setFilterBooleans] = useState<Record<string, boolean>>({
-    isEscort: false,
-    isWebcam: false,
-    isPhoneChat: false,
-    isSMSChat: false,
-    isAlternative: false,
-    isOtherServices: false,
     verified: false,
     availableTodayEscort: false,
-    availableNowWebcam: false,
-    availableNowPhoneChat: false,
     hasGallery: false,
     hasPrivateGallery: false,
   })
 
+  const [hotlists, setHotlists] = useState<any[]>([])
+  const [loadingHotlists, setLoadingHotlists] = useState(false)
+
   const [showFilters, setShowFilters] = useState(true)
+
+  const fetchHotlists = async () => {
+    setLoadingHotlists(true)
+    try {
+      const res = await fetch('/api/hotlists')
+      if (res.ok) {
+        const data = await res.json()
+        setHotlists(data.hotlists || [])
+      }
+    } catch (err) {
+      console.error("Error fetching hotlists:", err)
+    } finally {
+      setLoadingHotlists(false)
+    }
+  }
+
+  const handleToggleHotlist = async (listId: number, isMember: boolean) => {
+    if (!selectedProfile) return
+    try {
+      const res = await fetch('/api/hotlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: isMember ? 'remove-user' : 'add',
+          userId: selectedProfile.userId,
+          listId
+        })
+      })
+      if (res.ok) {
+        await fetchHotlists()
+      } else {
+        const errorData = await res.json()
+        alert(`Failed to update hotlist: ${errorData.error || 'Server error'}`)
+      }
+    } catch (err) {
+      console.error("Error toggling hotlist:", err)
+      alert("Error updating hotlist.")
+    }
+  }
 
   const fetchProfiles = async () => {
     setLoading(true)
@@ -119,6 +153,7 @@ export default function ProfilesBrowser() {
 
     loadSettings()
     fetchProfiles()
+    fetchHotlists()
   }, [])
 
   const handleApplyFilters = (e: React.FormEvent) => {
@@ -134,16 +169,8 @@ export default function ProfilesBrowser() {
     setTown('')
     setOrderBy('lastUpdated-desc')
     setFilterBooleans({
-      isEscort: false,
-      isWebcam: false,
-      isPhoneChat: false,
-      isSMSChat: false,
-      isAlternative: false,
-      isOtherServices: false,
       verified: false,
       availableTodayEscort: false,
-      availableNowWebcam: false,
-      availableNowPhoneChat: false,
       hasGallery: false,
       hasPrivateGallery: false,
     })
@@ -268,19 +295,11 @@ export default function ProfilesBrowser() {
             </div>
 
             <div className="space-y-2 border-t border-slate-100 pt-3">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Service Offerings</span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Availability & Status</span>
               <div className="max-h-48 overflow-y-auto pr-1 space-y-1.5">
                 {[
-                  { key: 'isEscort', label: 'Escort Service' },
-                  { key: 'isWebcam', label: 'Webcam Show' },
-                  { key: 'isPhoneChat', label: 'Phone Chat' },
-                  { key: 'isSMSChat', label: 'SMS Chat' },
-                  { key: 'isAlternative', label: 'Alternative Escort' },
-                  { key: 'isOtherServices', label: 'Other Services' },
                   { key: 'verified', label: 'Fully Verified Member' },
                   { key: 'availableTodayEscort', label: 'Available Today (Escort)' },
-                  { key: 'availableNowWebcam', label: 'Available Now (Webcam)' },
-                  { key: 'availableNowPhoneChat', label: 'Available Now (Phone)' },
                   { key: 'hasGallery', label: 'Has Gallery' },
                   { key: 'hasPrivateGallery', label: 'Has Private Gallery' },
                 ].map((item) => (
@@ -467,6 +486,35 @@ export default function ProfilesBrowser() {
                     "{selectedProfile.summary || 'No summary bio provided.'}"
                   </div>
                 </div>
+              </div>
+
+              <div className="border border-slate-200 rounded p-4 space-y-2 bg-slate-50">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Hotlist Assignments</h4>
+                {loadingHotlists ? (
+                  <p className="text-[11px] text-slate-400">Loading your hotlists...</p>
+                ) : hotlists.length === 0 ? (
+                  <p className="text-[11px] text-slate-500 italic">No hotlists found. Create hotlists in the Hotlists section.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {hotlists.map((list) => {
+                      const isMember = list.HotListMembers?.some((m: any) => m.UserID === selectedProfile.userId)
+                      return (
+                        <button
+                          key={list.HotListDetails.ListID}
+                          onClick={() => handleToggleHotlist(list.HotListDetails.ListID, isMember)}
+                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition flex items-center gap-1 ${
+                            isMember
+                              ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className={isMember ? 'text-rose-500' : 'text-slate-400'}>♥</span>
+                          {list.HotListDetails.ListName}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="border border-slate-200 rounded p-4 bg-slate-50 space-y-2">
