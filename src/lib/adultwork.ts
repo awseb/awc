@@ -76,6 +76,8 @@ export interface AdultWorkEmail {
   Disclaimer?: string
 }
 
+export const dynamic = 'force-dynamic';
+
 // Global variable to keep mock emails in-memory for live-session simulation
 let MOCK_EMAILS: AdultWorkEmail[] = []
 
